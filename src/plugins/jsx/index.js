@@ -208,17 +208,30 @@ export default (superClass: Class<Parser>): Class<Parser> => class extends super
     return this.finishNode(node, "JSXIdentifier");
   }
 
+  jsxParseMemberExpression(): N.JSXIdentifier | N.JSXMemberExpression {
+    const startPos = this.state.start;
+    const startLoc = this.state.startLoc;
+    let node = this.jsxParseIdentifier();
+    while (this.eat(tt.dot)) {
+      const newNode = this.startNodeAt(startPos, startLoc);
+      newNode.object = node;
+      newNode.property = this.jsxParseIdentifier();
+      node = this.finishNode(newNode, "JSXMemberExpression");
+    }
+    return node;
+  }
+
   // Parse namespaced identifier.
 
   jsxParseNamespacedName(): N.JSXNamespacedName {
     const startPos = this.state.start;
     const startLoc = this.state.startLoc;
-    const name = this.jsxParseIdentifier();
+    const name = this.jsxParseMemberExpression();
     if (!this.eat(tt.colon)) return name;
 
     const node = this.startNodeAt(startPos, startLoc);
     node.namespace = name;
-    node.name = this.jsxParseIdentifier();
+    node.name = this.jsxParseMemberExpression();
     return this.finishNode(node, "JSXNamespacedName");
   }
 
